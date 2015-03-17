@@ -1,22 +1,12 @@
 /******************************************************************************
-SFE_LSM9DS0.h
-SFE_LSM9DS0 Library Header File
-Jim Lindblom @ SparkFun Electronics
+lsm9ds0.h
+LSM9DS0 library for Beaglebone Black
+Alex Fuhr, The Ohio State University
 Original Creation Date: February 14, 2014 (Happy Valentines Day!)
-https://github.com/sparkfun/LSM9DS0_Breakout
-This file prototypes the LSM9DS0 class, implemented in SFE_LSM9DS0.cpp. In
-addition, it defines every register in the LSM9DS0 (both the Gyro and Accel/
-Magnetometer registers).
-Development environment specifics:
-	IDE: Arduino 1.0.5
-	Hardware Platform: Arduino Pro 3.3V/8MHz
-	LSM9DS0 Breakout Version: 1.0
-This code is beerware; if you see me (or any other SparkFun employee) at the
-local, and you've found our code helpful, please buy us a round!
-Distributed as-is; no warranty is given.
+https://github.com/projectzen/Beaglebone-LSM9DS0
 ******************************************************************************/
-#ifndef __SFE_LSM9DS0_H__
-#define __SFE_LSM9DS0_H__
+#ifndef __lsm9ds0.h
+#define __lsm9ds0.h
 
 ////////////////////////////
 // LSM9DS0 Gyro Registers //

@@ -1,4 +1,4 @@
 # Beaglebone-LSM9DS0
 LSM9DS0 library for the Beaglebone Black
 
-Doesn't currently work, prints the same value every time for accel and gyro.
+This library is adapted from the LSM9DS0 Arduino library from Sparkfun, so refer to that one for documentation on how to use each function.

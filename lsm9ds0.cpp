@@ -1,25 +1,11 @@
 /******************************************************************************
-SFE_LSM9DS0.cpp
-SFE_LSM9DS0 Library Source File
-Jim Lindblom @ SparkFun Electronics
-Original Creation Date: February 14, 2014 (Happy Valentines Day!)
-https://github.com/sparkfun/LSM9DS0_Breakout
-This file implements all functions of the LSM9DS0 class. Functions here range
-from higher level stuff, like reading/writing LSM9DS0 registers to low-level,
-hardware reads and writes. Both SPI and I2C handler functions can be found
-towards the bottom of this file.
-Development environment specifics:
-	IDE: Arduino 1.0.5
-	Hardware Platform: Arduino Pro 3.3V/8MHz
-	LSM9DS0 Breakout Version: 1.0
-This code is beerware; if you see me (or any other SparkFun employee) at the
-local, and you've found our code helpful, please buy us a round!
-Distributed as-is; no warranty is given.
+lsm9ds0 Beaglebone Library
+Alex Fuhr, The Ohio State University
+https://github.com/projectzen/Beaglebone-LSM9DS0
+Implements the LSM9DS0 functions on Beaglebone Black
 ******************************************************************************/
 
-#include "SFE_LSM9DS0.h"
-//#include <Wire.h> // Wire library is used for I2C
-//#include <SPI.h>  // SPI library is used for...SPI.
+#include "lsm9ds0.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -561,64 +547,9 @@ void LSM9DS0::xmReadBytes(unsigned char subAddress, unsigned char * dest, unsign
 	I2CreadBytes(xmAddress, subAddress, dest, count);
 }
 
-/*void LSM9DS0::initSPI()
-{
-	pinMode(gAddress, OUTPUT);
-	digitalWrite(gAddress, HIGH);
-	pinMode(xmAddress, OUTPUT);
-	digitalWrite(xmAddress, HIGH);
-	
-	SPI.begin();
-	// Maximum SPI frequency is 10MHz, could divide by 2 here:
-	SPI.setClockDivider(SPI_CLOCK_DIV4);
-	// Data is read and written MSb first.
-	SPI.setBitOrder(MSBFIRST);
-	// Data is captured on rising edge of clock (CPHA = 0)
-	// Base value of the clock is HIGH (CPOL = 1)
-	SPI.setDataMode(SPI_MODE1);
-}
-
-void LSM9DS0::SPIwriteByte(unsigned char csPin, unsigned char subAddress, unsigned char data)
-{
-	digitalWrite(csPin, LOW); // Initiate communication
-	
-	// If write, bit 0 (MSB) should be 0
-	// If single write, bit 1 should be 0
-	SPI.transfer(subAddress & 0x3F); // Send Address
-	SPI.transfer(data); // Send data
-	
-	digitalWrite(csPin, HIGH); // Close communication
-}
-
-unsigned char LSM9DS0::SPIreadByte(unsigned char csPin, unsigned char subAddress)
-{
-	unsigned char temp;
-	// Use the multiple read function to read 1 char. 
-	// Value is returned to `temp`.
-	SPIreadBytes(csPin, subAddress, &temp, 1);
-	return temp;
-}
-
-void LSM9DS0::SPIreadBytes(unsigned char csPin, unsigned char subAddress,
-							unsigned char * dest, unsigned char count)
-{
-	digitalWrite(csPin, LOW); // Initiate communication
-	// To indicate a read, set bit 0 (msb) to 1
-	// If we're reading multiple chars, set bit 1 to 1
-	// The remaining six chars are the address to be read
-	if (count > 1)
-		SPI.transfer(0xC0 | (subAddress & 0x3F));
-	else
-		SPI.transfer(0x80 | (subAddress & 0x3F));
-	for (int i=0; i<count; i++)
-	{
-		dest[i] = SPI.transfer(0x00); // Read into destination array
-	}
-	digitalWrite(csPin, HIGH); // Close communication
-}*/
-
 void LSM9DS0::initI2C()
 {
+	//Open I2C file as bidirectional
 	char namebuf[MAX_BUS];
 	snprintf(namebuf, sizeof(namebuf), "/dev/i2c-%d", I2CBus);
 	if ((file=open(namebuf, O_RDWR)) < 0) {
@@ -626,18 +557,11 @@ void LSM9DS0::initI2C()
 	}
 }
 
-// Wire.h read and write protocols
 void LSM9DS0::I2CwriteByte(unsigned char address, unsigned char subAddress, unsigned char data)
 {
-	/*Wire.beginTransmission(address);  // Initialize the Tx buffer
-	Wire.write(subAddress);           // Put slave register address in Tx buffer
-	Wire.write(data);                 // Put data in Tx buffer
-	Wire.endTransmission();           // Send the Tx buffer*/
 	if (ioctl(file, I2C_SLAVE, address) < 0) {
 		cout << "I2C_SLAVE address " << address << " failed..." << endl;
 	}
-	/*write(file, &subAddress, 1);
-	write(file, &data, 1);*/
 	int result = i2c_smbus_write_byte_data(file, subAddress, data);
 	if (result == -1) {
 		printf("Failed to write byte to " + subAddress);
@@ -646,40 +570,18 @@ void LSM9DS0::I2CwriteByte(unsigned char address, unsigned char subAddress, unsi
 
 unsigned char LSM9DS0::I2CreadByte(unsigned char address, unsigned char subAddress)
 {
-	/*unsigned char data; // `data` will store the register data	 
-	Wire.beginTransmission(address);         // Initialize the Tx buffer
-	Wire.write(subAddress);	                 // Put slave register address in Tx buffer
-	Wire.endTransmission(false);             // Send the Tx buffer, but send a restart to keep connection alive
-	Wire.requestFrom(address, (unsigned char) 1);  // Read one char from slave register address 
-	data = Wire.read();                      // Fill Rx buffer with result
-	return data;                             // Return data read from slave register*/
 	if (ioctl(file, I2C_SLAVE, address) < 0) {
 		cout << "I2C_SLAVE address " << address << " failed..." << endl;
 	}
-	/*write(file, &subAddress, 1);
-	unsigned char result;
-	read(file, &result, 1);*/
 	return i2c_smbus_read_byte_data(file, subAddress);
 }
 
 void LSM9DS0::I2CreadBytes(unsigned char address, unsigned char subAddress, unsigned char * dest, unsigned char count)
 {  
-	/*Wire.beginTransmission(address);   // Initialize the Tx buffer
-	// Next send the register to be read. OR with 0x80 to indicate multi-read.
-	Wire.write(subAddress | 0x80);     // Put slave register address in Tx buffer
-	Wire.endTransmission(false);       // Send the Tx buffer, but send a restart to keep connection alive
-	unsigned char i = 0;
-	Wire.requestFrom(address, count);  // Read chars from slave register address 
-	while (Wire.available()) 
-	{
-		dest[i++] = Wire.read(); // Put read results in the Rx buffer
-	}*/
 	if (ioctl(file, I2C_SLAVE, address) < 0) {
 		cout << "I2C_SLAVE address " << address << " failed..." << endl;
 	}
-	unsigned char sAddr = subAddress | 0x80;
-	/*write(file, &sAddr, 1);
-	read(file, dest, count);*/
+	unsigned char sAddr = subAddress | 0x80; // or with 0x80 to indicate multi-read
 	int result = i2c_smbus_read_i2c_block_data(file, sAddr, count, dest);
 	if (result != count) {
 		printf("Failed to read block from I2C");
