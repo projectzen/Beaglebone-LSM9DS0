@@ -24,7 +24,6 @@ Distributed as-is; no warranty is given.
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <linux/i2c.h>
 #include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
 #include <stropts.h>
@@ -620,6 +619,11 @@ void LSM9DS0::SPIreadBytes(unsigned char csPin, unsigned char subAddress,
 
 void LSM9DS0::initI2C()
 {
+	char namebuf[MAX_BUS];
+	snprintf(namebuf, sizeof(namebuf), "/dev/i2c-%d", I2CBus);
+	if ((file=open(namebuf, O_RDWR)) < 0) {
+		cout << "Failed to open sensor on " << namebuf << " I2C Bus" << endl;
+	}
 }
 
 // Wire.h read and write protocols
@@ -629,19 +633,15 @@ void LSM9DS0::I2CwriteByte(unsigned char address, unsigned char subAddress, unsi
 	Wire.write(subAddress);           // Put slave register address in Tx buffer
 	Wire.write(data);                 // Put data in Tx buffer
 	Wire.endTransmission();           // Send the Tx buffer*/
-	char namebuf[MAX_BUS];
-	snprintf(namebuf, sizeof(namebuf), "/dev/i2c-%d", I2CBus);
-	int file;
-	if ((file=open(namebuf, O_RDWR)) < 0) {
-		cout << "Failed to open sensor on " << namebuf << " I2C Bus" << endl;
-		return;
-	}
 	if (ioctl(file, I2C_SLAVE, address) < 0) {
 		cout << "I2C_SLAVE address " << address << " failed..." << endl;
 	}
-	write(file, &subAddress, 1);
-	write(file, &data, 1);
-	close(file);
+	/*write(file, &subAddress, 1);
+	write(file, &data, 1);*/
+	int result = i2c_smbus_write_byte_data(file, subAddress, data);
+	if (result == -1) {
+		printf("Failed to write byte to " + subAddress);
+	}
 }
 
 unsigned char LSM9DS0::I2CreadByte(unsigned char address, unsigned char subAddress)
@@ -653,21 +653,13 @@ unsigned char LSM9DS0::I2CreadByte(unsigned char address, unsigned char subAddre
 	Wire.requestFrom(address, (unsigned char) 1);  // Read one char from slave register address 
 	data = Wire.read();                      // Fill Rx buffer with result
 	return data;                             // Return data read from slave register*/
-	char namebuf[MAX_BUS];
-	snprintf(namebuf, sizeof(namebuf), "/dev/i2c-%d", I2CBus);
-	int file;
-	if ((file=open(namebuf, O_RDWR)) < 0) {
-		cout << "Failed to open sensor on " << namebuf << " I2C Bus" << endl;
-		return(-1);
-	}
 	if (ioctl(file, I2C_SLAVE, address) < 0) {
 		cout << "I2C_SLAVE address " << address << " failed..." << endl;
 	}
-	write(file, &subAddress, 1);
+	/*write(file, &subAddress, 1);
 	unsigned char result;
-	read(file, &result, 1);
-	close(file);
-	return result;
+	read(file, &result, 1);*/
+	return i2c_smbus_read_byte_data(file, subAddress);
 }
 
 void LSM9DS0::I2CreadBytes(unsigned char address, unsigned char subAddress, unsigned char * dest, unsigned char count)
@@ -682,17 +674,14 @@ void LSM9DS0::I2CreadBytes(unsigned char address, unsigned char subAddress, unsi
 	{
 		dest[i++] = Wire.read(); // Put read results in the Rx buffer
 	}*/
-	char namebuf[MAX_BUS];
-	snprintf(namebuf, sizeof(namebuf), "/dev/i2c-%d", I2CBus);
-	int file;
-	if ((file=open(namebuf, O_RDWR)) < 0) {
-		cout << "Failed to open sensor on " << namebuf << " I2C Bus" << endl;
-		return;
-	}
 	if (ioctl(file, I2C_SLAVE, address) < 0) {
 		cout << "I2C_SLAVE address " << address << " failed..." << endl;
 	}
-	write(file, &subAddress, 1);
-	read(file, dest, count);
-	close(file);
+	unsigned char sAddr = subAddress | 0x80;
+	/*write(file, &sAddr, 1);
+	read(file, dest, count);*/
+	int result = i2c_smbus_read_i2c_block_data(file, sAddr, count, dest);
+	if (result != count) {
+		printf("Failed to read block from I2C");
+	}
 }

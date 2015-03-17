@@ -368,6 +368,9 @@ private:
 	unsigned char xmAddress, gAddress;
 	// I2CBus keeps track of the bus
 	int I2CBus;
+
+	//File to write/read from
+	int file;
 	
 	// gScale, aScale, and mScale store the current scale range for each 
 	// sensor. Should be updated whenever that value changes.
